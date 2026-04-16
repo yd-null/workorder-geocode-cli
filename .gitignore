@@ -1,5 +1,9 @@
 .DS_STORE
 apikey.txt
 .direnv
+__pycache__/
+*.pyc
 *.xlsx
+*.csv
+!synthetic_work_orders_sample.xlsx
 lat-lon-gmaps-api*
