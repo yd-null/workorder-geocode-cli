@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "workorder-geocode-cli"
+version = "0.2.0"
+description = "CLI to geocode Dynamics CRM work order exports."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "yd-null" }]
+dependencies = [
+  "googlemaps>=4.10,<5",
+  "pandas>=2.2,<3",
+  "openpyxl>=3.1,<4",
+]
+keywords = ["dynamics", "workorder", "geocode", "cli"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.scripts]
+workorder-geocode-cli = "workorder_geocode_cli:main"
+
+[tool.setuptools]
+py-modules = ["workorder_geocode_cli"]
+license-files = ["LICENSE"]

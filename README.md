@@ -24,29 +24,29 @@ pip install -r requirements.txt
 Show usage/help:
 
 ```bash
-./workorder-geocode-cli -h
+python3 workorder_geocode_cli.py -h
 ```
 
 ```bash
-./workorder-geocode-cli "path/to/WorkOrders.xlsx"
+python3 workorder_geocode_cli.py "path/to/WorkOrders.xlsx"
 ```
 
 To skip bounds checking for rows that already have latitude/longitude:
 
 ```bash
-./workorder-geocode-cli --disable-bounds-check "path/to/WorkOrders.xlsx"
-```
-
-If needed, you can also run it with Python directly:
-
-```bash
-python3 workorder-geocode-cli.py "path/to/WorkOrders.xlsx"
+python3 workorder_geocode_cli.py --disable-bounds-check "path/to/WorkOrders.xlsx"
 ```
 
 CSV input is also supported:
 
 ```bash
-./workorder-geocode-cli "path/to/WorkOrders.csv"
+python3 workorder_geocode_cli.py "path/to/WorkOrders.csv"
+```
+
+If installed as a package (`pip install .`), you can run the command directly:
+
+```bash
+workorder-geocode-cli "path/to/WorkOrders.xlsx"
 ```
 
 The script will then prompt:
@@ -114,6 +114,8 @@ If a row already has coordinates, these bounds are used to decide whether to ski
 - If a row already has latitude and longitude within configured bounds, it is skipped.
 - If existing coordinates are out of bounds, the row is geocoded again.
 - If you run with `--disable-bounds-check`, any row with existing latitude and longitude is skipped without checking bounds.
+- If address fields are empty but in-bounds coordinates already exist, the row is skipped.
+- If address fields are empty and coordinates are out of bounds, the row is logged as `LAT/LON EXISTS OUTSIDE BOUNDS - NO FALLBACK ADDRESS` and skipped.
 - If geocoding fails for a row, it is listed in the error section at the end.
 
 ## Security note

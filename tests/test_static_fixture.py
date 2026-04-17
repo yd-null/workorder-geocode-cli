@@ -70,6 +70,8 @@ class StaticFixtureTests(unittest.TestCase):
 
         categories = {
             "coords_only": lat_text & lon_text & ~has_address,
+            "coords_only_in_bounds": has_numeric_coords & ~has_address & in_bounds,
+            "coords_only_out_of_bounds": has_numeric_coords & ~has_address & ~in_bounds,
             "address_only": ~lat_text & ~lon_text & has_address,
             "out_of_bounds_with_address": has_numeric_coords & has_address & ~in_bounds,
             "in_bounds_with_address": in_bounds & has_address,
@@ -129,30 +131,46 @@ class StaticFixtureTests(unittest.TestCase):
 
     def test_fixture_has_expected_mutation_mix(self):
         df = pd.read_excel(
-            FIXTURE_PATH, sheet_name="Completed Work Orders FY Filter", dtype=str
+            FIXTURE_PATH,
+            sheet_name="Completed Work Orders FY Filter",
+            dtype=str,
+            keep_default_na=False,
         )
         categories = self.classify_rows(df)
 
-        self.assertEqual(len(df), 10)
+        self.assertEqual(len(df), 12)
         self.assertEqual(int(categories["coords_only"].sum()), 2)
-        self.assertEqual(int(categories["address_only"].sum()), 2)
+        self.assertEqual(int(categories["coords_only_in_bounds"].sum()), 1)
+        self.assertEqual(int(categories["coords_only_out_of_bounds"].sum()), 1)
+        self.assertEqual(int(categories["address_only"].sum()), 3)
         self.assertEqual(int(categories["out_of_bounds_with_address"].sum()), 2)
         self.assertEqual(int(categories["in_bounds_with_address"].sum()), 1)
-        self.assertEqual(int(categories["partial_coords"].sum()), 1)
+        self.assertEqual(int(categories["partial_coords"].sum()), 2)
         self.assertEqual(int(categories["invalid_coord_text"].sum()), 1)
-        self.assertEqual(int(categories["empty_address"].sum()), 3)
+        self.assertEqual(int(categories["empty_address"].sum()), 4)
 
         self.assertTrue(df["Work Order Number"].is_unique)
+
+        placeholder = df.loc[df["Work Order Number"] == "T2001112"].iloc[0]
+        self.assertEqual(placeholder["Address 1"], "NULL")
+        self.assertEqual(placeholder["Address 2"], "TBD")
+        self.assertEqual(placeholder["Latitude"], "")
+        self.assertEqual(placeholder["Longitude"], "")
 
     def test_default_mode_hits_expected_paths(self):
         result, output, geocode_calls, wrote_output = self.run_main()
 
         self.assertEqual(result, 0)
         self.assertTrue(wrote_output)
-        self.assertEqual(geocode_calls, 6)
+        self.assertEqual(geocode_calls, 7)
         self.assertIn("SKIPPING - LAT/LON EXISTS WITHIN BOUNDS", output)
         self.assertIn("RE-EVALUATING - LAT/LON EXISTS OUTSIDE BOUNDS", output)
-        self.assertIn("ERROR - ADDRESS IS EMPTY", output)
+        self.assertIn(
+            "ERROR - LAT/LON EXISTS OUTSIDE BOUNDS - NO FALLBACK ADDRESS", output
+        )
+        self.assertIn("SKIPPING - NO FALLBACK ADDRESS", output)
+        self.assertIn("ERROR Nil", output)
+        self.assertIn("SKIPPING - ADDRESS IS EMPTY", output)
 
     def test_disable_bounds_check_skips_existing_coords_without_geocoding(self):
         result, output, geocode_calls, wrote_output = self.run_main(
@@ -161,8 +179,9 @@ class StaticFixtureTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         self.assertTrue(wrote_output)
-        self.assertEqual(geocode_calls, 4)
-        self.assertEqual(output.count("BOUNDS CHECK DISABLED"), 3)
+        self.assertEqual(geocode_calls, 5)
+        self.assertEqual(output.count("BOUNDS CHECK DISABLED"), 5)
+        self.assertNotIn("NO FALLBACK ADDRESS", output)
         self.assertNotIn("RE-EVALUATING - LAT/LON EXISTS OUTSIDE BOUNDS", output)
 
 

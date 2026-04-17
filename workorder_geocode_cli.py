@@ -303,21 +303,52 @@ def main() -> int:
 
         cell_lat_is_null = pd.isna(cell_lat)
         cell_lon_is_null = pd.isna(cell_lon)
+        has_coords = not cell_lat_is_null and not cell_lon_is_null
 
         address = build_address(df, row_index, pd)
 
+        print("")
+
         if address == "":
-            print("")
-            print(
-                f"Row {row_number} - {Colors.RED}ERROR - ADDRESS IS EMPTY{Colors.RESET}"
-            )
+            if has_coords:
+                if disable_bounds_check:
+                    print(f"Row {row_number} - NO ADDRESS PROVIDED")
+                    print(
+                        "    "
+                        f"{Colors.BLUE}SKIPPING - LAT/LON EXISTS (BOUNDS CHECK DISABLED)"
+                        f"{Colors.RESET}"
+                    )
+                    continue
+
+                if (
+                    bounds_config["west"] <= cell_lon <= bounds_config["east"]
+                    and bounds_config["south"] <= cell_lat <= bounds_config["north"]
+                ):
+                    print(f"Row {row_number} - NO ADDRESS PROVIDED")
+                    print(
+                        f"    {Colors.BLUE}SKIPPING - LAT/LON EXISTS WITHIN BOUNDS{Colors.RESET}"
+                    )
+                    continue
+
+                print(
+                    "Row "
+                    f"{row_number} - {Colors.RED}ERROR - LAT/LON EXISTS OUTSIDE BOUNDS "
+                    f"- NO FALLBACK ADDRESS{Colors.RESET}"
+                )
+                print(f"    {Colors.RED}SKIPPING - NO FALLBACK ADDRESS{Colors.RESET}")
+                errors.append(
+                    f"Row {row_number} - LAT/LON EXISTS OUTSIDE BOUNDS - NO FALLBACK ADDRESS"
+                )
+                continue
+
+            print(f"Row {row_number} - {Colors.RED}ERROR Nil{Colors.RESET}")
+            print(f"    {Colors.RED}SKIPPING - ADDRESS IS EMPTY{Colors.RESET}")
             errors.append(f"Row {row_number} - ADDRESS IS EMPTY")
             continue
 
-        print("")
         print(f"Row {row_number} - {address}")
 
-        if not cell_lat_is_null and not cell_lon_is_null:
+        if has_coords:
             if disable_bounds_check:
                 print(
                     "    "

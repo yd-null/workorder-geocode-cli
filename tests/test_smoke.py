@@ -51,6 +51,24 @@ def sample_dataframe():
     )
 
 
+def coords_only_dataframe(latitude: str, longitude: str):
+    return pd.DataFrame(
+        [
+            {
+                "Address 1": "",
+                "Address 2": "",
+                "Address 3": "",
+                "City": "",
+                "State Or Province": "",
+                "Postal Code": "",
+                "Latitude": latitude,
+                "Longitude": longitude,
+            }
+        ],
+        index=["WO-COORDS"],
+    )
+
+
 class HelpFlagTests(unittest.TestCase):
     def test_short_help_flag_prints_usage_and_flags(self):
         output = io.StringIO()
@@ -182,6 +200,47 @@ class SmokeTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
             self.assertIn("BOUNDS CHECK DISABLED", output)
+            self.assertEqual(fake_client.call_count, 0)
+            prompt_mock.assert_called_once()
+            client_mock.assert_called_once_with("test-key")
+
+    def test_coords_only_in_bounds_are_skipped_without_error(self):
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            input_path = temp_path / "coords-only-in-bounds.csv"
+
+            df = coords_only_dataframe("-33.8688", "151.2093")
+            df.to_csv(input_path, index_label="Work Order")
+
+            result, output, prompt_mock, client_mock, fake_client = self.run_main(
+                input_path
+            )
+
+            self.assertEqual(result, 0)
+            self.assertIn("SKIPPING - LAT/LON EXISTS WITHIN BOUNDS", output)
+            self.assertNotIn("ERROR Nil", output)
+            self.assertEqual(fake_client.call_count, 0)
+            prompt_mock.assert_called_once()
+            client_mock.assert_called_once_with("test-key")
+
+    def test_coords_only_out_of_bounds_raise_no_fallback_address_error(self):
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            input_path = temp_path / "coords-only-out-of-bounds.csv"
+
+            df = coords_only_dataframe("0", "0")
+            df.to_csv(input_path, index_label="Work Order")
+
+            result, output, prompt_mock, client_mock, fake_client = self.run_main(
+                input_path
+            )
+
+            self.assertEqual(result, 0)
+            self.assertIn(
+                "ERROR - LAT/LON EXISTS OUTSIDE BOUNDS - NO FALLBACK ADDRESS",
+                output,
+            )
+            self.assertIn("SKIPPING - NO FALLBACK ADDRESS", output)
             self.assertEqual(fake_client.call_count, 0)
             prompt_mock.assert_called_once()
             client_mock.assert_called_once_with("test-key")
